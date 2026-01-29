@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hindi Real News</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f2f2f2;
+}
+header{
+  background:#d32f2f;
+  color:white;
+  padding:15px;
+  text-align:center;
+}
+input{
+  width:95%;
+  padding:10px;
+  margin:10px auto;
+  display:block;
+  border-radius:5px;
+  border:1px solid #ccc;
+}
+.news{
+  background:white;
+  margin:10px;
+  padding:12px;
+  border-radius:8px;
+  box-shadow:0 2px 5px rgba(0,0,0,.1);
+}
+.news h3{
+  margin:0;
+  font-size:18px;
+}
+.source{
+  font-size:12px;
+  color:#666;
+  margin:5px 0;
+}
+.news a{
+  color:#d32f2f;
+  text-decoration:none;
+  font-weight:bold;
+}
+footer{
+  text-align:center;
+  padding:10px;
+  font-size:12px;
+  color:#777;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>📰 Hindi Real News</h2>
+  <p>AajTak | BBC | NDTV | Bhaskar</p>
+</header>
+
+<input type="text" id="search" placeholder="न्यूज़ खोजें..." onkeyup="filterNews()">
+
+<div id="newsContainer"></div>
+
+<footer>
+  Live Hindi News • No API • GitHub Pages Ready
+</footer>
+
+<script>
+// RSS Sources
+const feeds = [
+  {
+    name:"AajTak",
+    url:"https://www.aajtak.in/rssfeeds/?id=home"
+  },
+  {
+    name:"BBC Hindi",
+    url:"https://feeds.bbci.co.uk/hindi/rss.xml"
+  },
+  {
+    name:"NDTV Hindi",
+    url:"https://feeds.feedburner.com/ndtvkhabar"
+  },
+  {
+    name:"Dainik Bhaskar",
+    url:"https://www.bhaskar.com/rss-v1--category-1741.xml"
+  }
+];
+
+// CORS Proxy
+const proxy = "https://api.allorigins.win/raw?url=";
+
+let allNews = [];
+
+async function loadNews(){
+  for(const feed of feeds){
+    try{
+      const res = await fetch(proxy + encodeURIComponent(feed.url));
+      const text = await res.text();
+      const xml = new DOMParser().parseFromString(text,"text/xml");
+      const items = xml.querySelectorAll("item");
+
+      items.forEach(item=>{
+        allNews.push({
+          title:item.querySelector("title")?.textContent || "",
+          link:item.querySelector("link")?.textContent || "",
+          source:feed.name
+        });
+      });
+    }catch(e){
+      console.log("Error loading",feed.name);
+    }
+  }
+  renderNews(allNews);
+}
+
+function renderNews(list){
+  const box=document.getElementById("newsContainer");
+  box.innerHTML="";
+  list.forEach(n=>{
+    const div=document.createElement("div");
+    div.className="news";
+    div.innerHTML=`
+      <h3>${n.title}</h3>
+      <div class="source">Source: ${n.source}</div>
+      <a href="${n.link}" target="_blank">पूरा पढ़ें →</a>
+    `;
+    box.appendChild(div);
+  });
+}
+
+function filterNews(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const filtered=allNews.filter(n=>n.title.toLowerCase().includes(q));
+  renderNews(filtered);
+}
+
+loadNews();
+</script>
+
+</body>
+</html>
