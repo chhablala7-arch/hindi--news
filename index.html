@@ -5,71 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hindi Real News</title>
 
-<!-- PWA META -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#d32f2f">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f2f2f2;
-}
-header{
-  background:#d32f2f;
-  color:#fff;
-  padding:15px;
-  text-align:center;
-}
-input{
-  width:95%;
-  padding:10px;
-  margin:10px auto;
-  display:block;
-  border-radius:5px;
-  border:1px solid #ccc;
-}
-.news{
-  background:#fff;
-  margin:10px;
-  border-radius:8px;
-  overflow:hidden;
-  box-shadow:0 2px 5px rgba(0,0,0,.1);
-}
-.news img{
-  width:100%;
-  height:180px;
-  object-fit:cover;
-  background:#eee;
-}
-.news-content{
-  padding:12px;
-}
-.news h3{
-  margin:0;
-  font-size:16px;
-}
-.source{
-  font-size:12px;
-  color:#666;
-  margin:6px 0;
-}
-.news a{
-  color:#d32f2f;
-  text-decoration:none;
-  font-weight:bold;
-}
-.loading{
-  text-align:center;
-  padding:20px;
-  color:#777;
-}
-footer{
-  text-align:center;
-  padding:10px;
-  font-size:12px;
-  color:#777;
-}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f2f2}
+header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
+input{width:95%;padding:10px;margin:10px auto;display:block;border-radius:5px;border:1px solid #ccc}
+.news{background:#fff;margin:10px;border-radius:8px;overflow:hidden;box-shadow:0 2px 5px rgba(0,0,0,.1)}
+.news img{width:100%;height:180px;object-fit:cover;background:#eee}
+.news-content{padding:12px}
+.news h3{margin:0;font-size:16px}
+.source{font-size:12px;color:#666;margin:6px 0}
+.news a{color:#d32f2f;text-decoration:none;font-weight:bold}
+.loading{text-align:center;padding:20px;color:#777}
+footer{text-align:center;padding:10px;font-size:12px;color:#777}
 </style>
 </head>
 
@@ -82,28 +32,29 @@ footer{
 
 <input type="text" id="search" placeholder="न्यूज़ खोजें..." onkeyup="filterNews()">
 
-<div id="newsContainer">
-  <div class="loading">न्यूज़ लोड हो रही है...</div>
-</div>
+<div id="newsContainer"><div class="loading">न्यूज़ लोड हो रही है...</div></div>
 
-<footer>
-  Live Hindi News • Image Support • GitHub Pages Ready
-</footer>
+<footer>Live Hindi News • Image Working • GitHub Pages Ready</footer>
 
 <script>
-// RSS FEEDS
+// RSS feeds
 const feeds = [
   { name:"AajTak", url:"https://www.aajtak.in/rssfeeds/?id=home" },
   { name:"BBC Hindi", url:"https://feeds.bbci.co.uk/hindi/rss.xml" },
   { name:"NDTV Hindi", url:"https://feeds.feedburner.com/ndtvkhabar" }
 ];
 
-// 🔥 CORS PROXY (TEXT + IMAGE)
-const proxy = "https://api.allorigins.win/raw?url=";
+// Text proxy (RSS)
+const textProxy = "https://api.allorigins.win/raw?url=";
+
+// Image proxy (🔥 working)
+function imgProxy(url){
+  return "https://images.weserv.nl/?url=" + encodeURIComponent(url);
+}
 
 let allNews = [];
 
-// IMAGE EXTRACT
+// Extract image
 function getImage(item){
   const media = item.getElementsByTagName("media:content")[0];
   if(media && media.getAttribute("url")) return media.getAttribute("url");
@@ -115,10 +66,9 @@ function getImage(item){
   const match = desc.match(/<img[^>]+src="([^">]+)"/);
   if(match) return match[1];
 
-  return "https://via.placeholder.com/400x200?text=Hindi+News";
+  return "";
 }
 
-// LOAD NEWS (FAST)
 async function loadNews(){
   allNews = [];
   const box = document.getElementById("newsContainer");
@@ -126,9 +76,7 @@ async function loadNews(){
 
   await Promise.all(feeds.map(async feed=>{
     try{
-      const res = await fetch(proxy + encodeURIComponent(feed.url));
-      if(!res.ok) throw new Error();
-
+      const res = await fetch(textProxy + encodeURIComponent(feed.url));
       const text = await res.text();
       const xml = new DOMParser().parseFromString(text,"text/xml");
       const items = xml.querySelectorAll("item");
@@ -138,39 +86,27 @@ async function loadNews(){
         const link  = item.querySelector("link")?.textContent || "";
         const image = getImage(item);
 
-        if(title.length > 10 && link.startsWith("http")){
-          allNews.push({
-            title,
-            link,
-            image,
-            source: feed.name
-          });
+        if(title.length > 10){
+          allNews.push({title,link,image,source:feed.name});
         }
       });
-    }catch(e){
-      console.log("Error loading:", feed.name);
-    }
+    }catch(e){}
   }));
 
   renderNews(allNews);
 }
 
-// RENDER NEWS (✅ IMAGE VIA PROXY)
 function renderNews(list){
   const box = document.getElementById("newsContainer");
   box.innerHTML = "";
 
-  if(list.length === 0){
-    box.innerHTML = "<div class='loading'>कोई न्यूज़ नहीं मिली</div>";
-    return;
-  }
-
   list.slice(0,50).forEach(n=>{
+    const img = n.image ? imgProxy(n.image) : "https://via.placeholder.com/400x200?text=Hindi+News";
+
     const div = document.createElement("div");
     div.className = "news";
     div.innerHTML = `
-      <img loading="lazy"
-           src="${proxy + encodeURIComponent(n.image)}"
+      <img loading="lazy" src="${img}"
            onerror="this.src='https://via.placeholder.com/400x200?text=Hindi+News'">
       <div class="news-content">
         <h3>${n.title}</h3>
@@ -182,15 +118,12 @@ function renderNews(list){
   });
 }
 
-// SEARCH
 function filterNews(){
-  const q = document.getElementById("search").value.toLowerCase();
-  const filtered = allNews.filter(n => n.title.toLowerCase().includes(q));
-  renderNews(filtered);
+  const q = search.value.toLowerCase();
+  renderNews(allNews.filter(n=>n.title.toLowerCase().includes(q)));
 }
 
 loadNews();
-setInterval(loadNews, 600000);
 </script>
 
 </body>
