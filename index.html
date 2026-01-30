@@ -105,30 +105,26 @@ let allNews = [];
 
 // IMAGE EXTRACT FUNCTION
 function getImage(item){
-  // 1️⃣ media:content
   const media = item.getElementsByTagName("media:content")[0];
   if(media && media.getAttribute("url")) return media.getAttribute("url");
 
-  // 2️⃣ enclosure
   const enc = item.getElementsByTagName("enclosure")[0];
   if(enc && enc.getAttribute("url")) return enc.getAttribute("url");
 
-  // 3️⃣ img from description
   const desc = item.querySelector("description")?.textContent || "";
   const match = desc.match(/<img[^>]+src="([^">]+)"/);
   if(match) return match[1];
 
-  // fallback image
   return "https://via.placeholder.com/400x200?text=Hindi+News";
 }
 
-// LOAD NEWS
+// LOAD NEWS (FAST)
 async function loadNews(){
   allNews = [];
   const box = document.getElementById("newsContainer");
   box.innerHTML = '<div class="loading">न्यूज़ लोड हो रही है...</div>';
 
-  for(const feed of feeds){
+  await Promise.all(feeds.map(async feed=>{
     try{
       const res = await fetch(proxy + encodeURIComponent(feed.url));
       if(!res.ok) throw new Error();
@@ -151,16 +147,15 @@ async function loadNews(){
           });
         }
       });
-
     }catch(e){
       console.log("Error loading:", feed.name);
     }
-  }
+  }));
 
   renderNews(allNews);
 }
 
-// RENDER
+// RENDER NEWS (LAZY IMAGE)
 function renderNews(list){
   const box = document.getElementById("newsContainer");
   box.innerHTML = "";
@@ -174,7 +169,8 @@ function renderNews(list){
     const div = document.createElement("div");
     div.className = "news";
     div.innerHTML = `
-      <img src="${n.image}" onerror="this.src='https://via.placeholder.com/400x200?text=Hindi+News'">
+      <img loading="lazy" src="${n.image}"
+           onerror="this.src='https://via.placeholder.com/400x200?text=Hindi+News'">
       <div class="news-content">
         <h3>${n.title}</h3>
         <div class="source">Source: ${n.source}</div>
